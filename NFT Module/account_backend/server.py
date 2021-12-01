@@ -43,7 +43,7 @@ def login(account: LoginAccount):
     return None
 
 @app.put('/api/editAccount')
-def edit(account: LoginAccount)
+def edit(account: LoginAccount):
 
     #look if in db
     #select and edit it
