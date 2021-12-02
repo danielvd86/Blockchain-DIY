@@ -105,18 +105,18 @@ def register(account: RegisterAccount, db: Session = Depends(get_db)):
 @app.get('/api/user/me')
 def get_me(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
 
-    # try:
-    print(token)
-    payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
-    user = db.query(models.User).get(payload.get('id'))
+    try:
+        print(token)
+        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        user = db.query(models.User).get(payload.get('id'))
 
-    return user
-    # except:
+        return user
+    except:
 
-    #     raise HTTPException(
-    #         status_code=status.HTTP_401_UNAUTHORIZED,
-    #         detail='Invalid username or password'
-    #     )
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Invalid username or password'
+        )
 
 
 @app.put('/api/editAccount')
