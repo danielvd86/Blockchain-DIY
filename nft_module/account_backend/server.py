@@ -12,11 +12,14 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi import FastAPI, Depends
 import os
-
+from dotenv import load_dotenv
 
 app = FastAPI()
 models.Base.metadata.create_all(bind=engine)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/token')
+
+
+jwt_secret = os.environ['JWT_SECRET']
 
 
 def get_db():
@@ -62,7 +65,7 @@ async def token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     user_obj = {'id': user.id,
                 'username': user.username,
                 'name': user.name}
-    token = jwt.encode(user_obj, os.JWT_SECRET)
+    token = jwt.encode(user_obj, jwt_secret)
 
     return {'access_token': token, 'token_type': 'bearer'}
 
@@ -105,8 +108,8 @@ def get_me(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
 
     try:
         print(token)
-        payload = jwt.decode(token, os.getenv(
-            'JWT_SECRET'), algorithms=['HS256'])
+        payload = jwt.decode(
+            token, jwt_secret, algorithms=['HS256'])
         user = db.query(models.User).get(payload.get('id'))
 
         return user
