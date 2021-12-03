@@ -1,22 +1,22 @@
-import os
-from fastapi import FastAPI, Depends
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel
-from typing import Optional
-import jwt
-from passlib.hash import bcrypt
-from sqlalchemy.sql.functions import mode
-import models
-from database import SessionLocal, engine
+from dotenv import load_dotenv
 from sqlalchemy.orm import Session
+from database import SessionLocal, engine
+import models
+from starlette.status import HTTP_409_CONFLICT
+from sqlalchemy.sql.functions import mode
+from passlib.hash import bcrypt
+import jwt
+from typing import Optional
+from pydantic import BaseModel
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends
+import os
 
 
 app = FastAPI()
 models.Base.metadata.create_all(bind=engine)
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl='token')
-
-# move this to .env
-# JWT_SECRET = 'secret'
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/token')
 
 
 def get_db():
@@ -59,9 +59,10 @@ async def token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
         return {'error': 'Input username or password was incorrect'}
 
     print(user.username)
-    user_obj = {'username': user.username,
-                'password_hash': user.hashed_password, 'name': user.name}
-    token = jwt.encode(user_obj, os.getenv("JWT_SECRET"))
+    user_obj = {'id': user.id,
+                'username': user.username,
+                'name': user.name}
+    token = jwt.encode(user_obj, os.JWT_SECRET)
 
     return {'access_token': token, 'token_type': 'bearer'}
 
@@ -77,6 +78,13 @@ def register(account: RegisterAccount, db: Session = Depends(get_db)):
     # check if already in db
     checkDB = db.query(models.User).filter(
         models.User.username == account.username).first()
+
+    if(checkDB != None):
+        raise HTTPException(
+            status_code=HTTP_409_CONFLICT,
+            detail='User already registered'
+        )
+
     if (checkDB == None):
         dbUser = models.User(
             username=account.username,
@@ -89,8 +97,25 @@ def register(account: RegisterAccount, db: Session = Depends(get_db)):
         db.commit()
         db.refresh(dbUser)
 
-    print(dbUser)
     return dbUser
+
+
+@app.get('/api/user/me')
+def get_me(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+
+    try:
+        print(token)
+        payload = jwt.decode(token, os.getenv(
+            'JWT_SECRET'), algorithms=['HS256'])
+        user = db.query(models.User).get(payload.get('id'))
+
+        return user
+    except:
+
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail='Invalid username or password'
+        )
 
 
 @app.put('/api/editAccount')
