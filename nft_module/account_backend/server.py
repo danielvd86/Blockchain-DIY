@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
@@ -15,7 +16,7 @@ models.Base.metadata.create_all(bind=engine)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='token')
 
 # move this to .env
-JWT_SECRET = 'secret'
+# JWT_SECRET = 'secret'
 
 
 def get_db():
@@ -60,7 +61,7 @@ async def token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     print(user.username)
     user_obj = {'username': user.username,
                 'password_hash': user.hashed_password, 'name': user.name}
-    token = jwt.encode(user_obj, JWT_SECRET)
+    token = jwt.encode(user_obj, os.getenv("JWT_SECRET"))
 
     return {'access_token': token, 'token_type': 'bearer'}
 
