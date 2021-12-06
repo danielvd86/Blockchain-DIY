@@ -2,6 +2,7 @@ from sqlalchemy import Boolean, Column, Integer, String
 
 from database import Base
 
+
 class User(Base):
 
     __tablename__ = "accounts"
@@ -11,6 +12,3 @@ class User(Base):
     hashed_password = Column(String)
     wallet = Column(String, unique=True)
     is_active = Column(Boolean, default=True)
-
-
-

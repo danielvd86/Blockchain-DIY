@@ -33,7 +33,12 @@ class RegisterAccount(BaseModel):
     username: str
     password: str  # should be hashed in the near future
     name: str
-    email: Optional[str] = None
+    wallet: str
+
+
+class EditAccount(BaseModel):
+    password: str  # should be hashed in the near future
+    name: str
     wallet: str
 
 
@@ -70,8 +75,8 @@ async def token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
 
 
 @app.get('/')
-async def index(token: str = Depends(oauth2_scheme)):
-    return {'the_token': token}
+async def index():
+    return {'message': 'Base endpoint for Account API'}
 
 
 @app.post('/api/register')
@@ -106,7 +111,6 @@ def register(account: RegisterAccount, db: Session = Depends(get_db)):
 def get_me(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
 
     try:
-        print(token)
         payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
         user = db.query(models.User).get(payload.get('id'))
 
@@ -120,8 +124,20 @@ def get_me(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
 
 
 @app.put('/api/editAccount')
-def edit(account: LoginAccount):
+def edit(account: EditAccount, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
 
     # look if in db
-    # select and edit it
-    return {'message': f'successfully edited account {account.username}'}
+
+    payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+    user = db.query(models.User).get(payload.get('id'))
+
+    if user != None:
+        user.name = account.name
+        user.hashed_password = bcrypt.hash(account.password)
+        user.wallet = account.wallet
+        return {'message': f'User {user.name} was updated successfully!'}
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail='User not found'
+        )
