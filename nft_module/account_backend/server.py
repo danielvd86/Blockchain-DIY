@@ -31,20 +31,16 @@ def get_db():
 
 class RegisterAccount(BaseModel):
     username: str
-    password: str  # should be hashed in the near future
+    password: str
     name: str
     wallet: str
 
 
 class EditAccount(BaseModel):
-    password: str  # should be hashed in the near future
+    password: str  
     name: str
     wallet: str
 
-
-class LoginAccount(BaseModel):
-    username: str
-    password: str  # should be hashed in the near future
 
 
 def authenticate_user(username: str, password: str, db):
@@ -56,8 +52,13 @@ def authenticate_user(username: str, password: str, db):
 
     return user_db
 
+@app.get('/')
+async def index():
+    return {'message': 'Base endpoint for Account API'}
 
-@app.post('/api/token')
+
+# Call this to login and create the OAuth2 Session
+@app.post('/api/login')
 async def token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
 
     user = authenticate_user(form_data.username, form_data.password, db)
@@ -73,12 +74,7 @@ async def token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
 
     return {'access_token': token, 'token_type': 'bearer'}
 
-
-@app.get('/')
-async def index():
-    return {'message': 'Base endpoint for Account API'}
-
-
+# Call this to register the user and his linked wallet
 @app.post('/api/register')
 def register(account: RegisterAccount, db: Session = Depends(get_db)):
 
@@ -106,7 +102,7 @@ def register(account: RegisterAccount, db: Session = Depends(get_db)):
 
     return dbUser
 
-
+# Returns user from the passed token
 @app.get('/api/user/me')
 def get_me(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
 
@@ -122,7 +118,7 @@ def get_me(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
             detail='Invalid username or password'
         )
 
-
+# Edit the user corresponding to the token passed
 @app.put('/api/editAccount')
 def edit(account: EditAccount, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
 
