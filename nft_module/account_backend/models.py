@@ -12,3 +12,4 @@ class User(Base):
     hashed_password = Column(String)
     wallet = Column(String, unique=True)
     is_active = Column(Boolean, default=True)
+    role = Column(String, default='user')

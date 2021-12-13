@@ -6,7 +6,7 @@ import jwt
 import os
 from passlib.hash import bcrypt
 from sqlalchemy.sql.functions import mode
-from starlette.status import HTTP_409_CONFLICT
+from starlette.status import HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
 import models
 from database import SessionLocal, engine
 from sqlalchemy.orm import Session
@@ -34,13 +34,17 @@ class RegisterAccount(BaseModel):
     password: str
     name: str
     wallet: str
+    role: str
 
 
 class EditAccount(BaseModel):
-    password: str  
+    password: str
     name: str
     wallet: str
 
+
+class CheckUsernameModel(BaseModel):
+    username: str
 
 
 def authenticate_user(username: str, password: str, db):
@@ -51,6 +55,7 @@ def authenticate_user(username: str, password: str, db):
         return False
 
     return user_db
+
 
 @app.get('/')
 async def index():
@@ -69,24 +74,33 @@ async def token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
     print(user.username)
     user_obj = {'id': user.id,
                 'username': user.username,
-                'name': user.name}
+                'name': user.name,
+                'role': user.role
+                }
     token = jwt.encode(user_obj, JWT_SECRET)
 
     return {'access_token': token, 'token_type': 'bearer'}
 
 # Call this to register the user and his linked wallet
+
+
 @app.post('/api/register')
 def register(account: RegisterAccount, db: Session = Depends(get_db)):
 
     # check if already in db
     checkDB = db.query(models.User).filter(
-        models.User.username == account.username).first()
+        models.User.username == account.username or models.User.wallet == account.wallet).first()
 
     if(checkDB != None):
         raise HTTPException(
             status_code=HTTP_409_CONFLICT,
-            detail='User already registered'
+            detail='User or wallet already registered'
         )
+
+    roles = ['user', 'admin', 'organizer']
+    if(roles.__contains__(account.role)):
+        raise HTTPException(status_code=409,
+                            detail='Sent role is not valid. Check the spelling and make sure it is either user, organizer or admin')
 
     if (checkDB == None):
         dbUser = models.User(
@@ -94,7 +108,8 @@ def register(account: RegisterAccount, db: Session = Depends(get_db)):
             hashed_password=bcrypt.hash(account.password),
             name=account.name,
             wallet=account.wallet,
-            is_active=True
+            is_active=True,
+            role=account.role
         )
         db.add(dbUser)
         db.commit()
@@ -103,6 +118,8 @@ def register(account: RegisterAccount, db: Session = Depends(get_db)):
     return dbUser
 
 # Returns user from the passed token
+
+
 @app.get('/api/user/me')
 def get_me(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
 
@@ -119,6 +136,8 @@ def get_me(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
         )
 
 # Edit the user corresponding to the token passed
+
+
 @app.put('/api/editAccount')
 def edit(account: EditAccount, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
 
@@ -137,3 +156,17 @@ def edit(account: EditAccount, db: Session = Depends(get_db), token: str = Depen
             status_code=status.HTTP_404_NOT_FOUND,
             detail='User not found'
         )
+
+
+app.post('/api/checkUsername')
+
+
+def checkUser(data: CheckUsernameModel, db: Depends(get_db)):
+
+    user = db.query(models.User).filter(
+        data.username == models.User.username).first()
+
+    if user is None:
+        raise HTTP_404_NOT_FOUND
+
+    return user
