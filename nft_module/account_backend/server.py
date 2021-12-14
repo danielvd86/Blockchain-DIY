@@ -13,10 +13,24 @@ from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi import FastAPI, Depends
 import os
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI()
 models.Base.metadata.create_all(bind=engine)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/token')
+origins = [
+    "http://localhost:3000",
+    "localhost:3000"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
 
 
 jwt_secret = os.environ['JWT_SECRET']
@@ -44,6 +58,7 @@ class LoginAccount(BaseModel):
 
 
 def authenticate_user(username: str, password: str, db):
+
     user_db = db.query(models.User).filter(
         models.User.username == username and bcrypt.verify(password, models.User.hashed_password)).first()
 
@@ -53,15 +68,15 @@ def authenticate_user(username: str, password: str, db):
     return user_db
 
 
-@app.post('/api/token')
+@app.post('/api/login')
 async def token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
 
     user = authenticate_user(form_data.username, form_data.password, db)
 
     if user is False:
-        return {'error': 'Input username or password was incorrect'}
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
 
-    print(user.username)
     user_obj = {'id': user.id,
                 'username': user.username,
                 'name': user.name}
@@ -107,7 +122,6 @@ def register(account: RegisterAccount, db: Session = Depends(get_db)):
 def get_me(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
 
     try:
-        print(token)
         payload = jwt.decode(
             token, jwt_secret, algorithms=['HS256'])
         user = db.query(models.User).get(payload.get('id'))
