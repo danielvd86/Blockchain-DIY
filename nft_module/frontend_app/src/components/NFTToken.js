@@ -14,6 +14,7 @@ import { transactions, cryptography, Buffer } from "@liskhq/lisk-client";
 import PurchaseNFTTokenDialog from "./dialogs/PurchaseNFTTokenDialog";
 import TransferNFTDialog from "./dialogs/TransferNFTDialog";
 import { Fragment } from "react";
+import { authContext, authDefault } from "../context/AuthContext";
 
 const useStyles = makeStyles((theme) => ({
   propertyList: {
@@ -50,7 +51,7 @@ export default function NFTToken(props) {
       "lsk"
     )
     .toString("binary");
-  const [user, setUser] = useState(null);
+  const [user, updateUser] = useState(authDefault);
   return (
     <Card>
       <CardContent className="relative">
@@ -117,6 +118,7 @@ export default function NFTToken(props) {
               color="primary"
               onClick={() => {
                 setOpenTransfer(true);
+                console.log(user);
               }}
             >
               Transfer NFT
