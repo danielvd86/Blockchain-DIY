@@ -1,3 +1,5 @@
+export const AUTH_URL = "http://localhost:8000/api";
+
 export const fetchNodeInfo = async () => {
   return fetch("http://localhost:4000/api/node/info")
     .then((res) => res.json())
@@ -39,5 +41,41 @@ export const getAllTransactions = async () => {
     .then((res) => res.json())
     .then((res) => {
       return res.data;
+    });
+};
+
+export const signIn = async (data) => {
+  return fetch(`${AUTH_URL}/token`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      // set cookie
+      console.log("Success:", data);
+    })
+    .catch((error) => {
+      console.error("Error:", error);
+    });
+};
+
+export const singUp = async (data) => {
+  return fetch(`${AUTH_URL}/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      // redirect to login form
+      console.log("Success:", data);
+    })
+    .catch((error) => {
+      console.error("Error:", error);
     });
 };

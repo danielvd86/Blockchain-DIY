@@ -1,24 +1,39 @@
-from fastapi import FastAPI, Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel
-from typing import Optional
-import jwt
-import os
-from passlib.hash import bcrypt
-from sqlalchemy.sql.functions import mode
-from starlette.status import HTTP_404_NOT_FOUND, HTTP_409_CONFLICT
-import models
-from database import SessionLocal, engine
-from sqlalchemy.orm import Session
 from dotenv import load_dotenv
+from sqlalchemy.orm import Session
+from database import SessionLocal, engine
+import models
+from starlette.status import HTTP_409_CONFLICT
+from sqlalchemy.sql.functions import mode
+from passlib.hash import bcrypt
+import jwt
+from typing import Optional
+from pydantic import BaseModel
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends
+import os
+from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI()
 models.Base.metadata.create_all(bind=engine)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl='/api/token')
+origins = [
+    "http://localhost:3000",
+    "localhost:3000"
+]
 
-# move this to .env
-JWT_SECRET = os.environ['JWT_SECRET']
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"]
+)
+
+
+jwt_secret = os.environ['JWT_SECRET']
 
 
 def get_db():
@@ -31,23 +46,19 @@ def get_db():
 
 class RegisterAccount(BaseModel):
     username: str
-    password: str
+    password: str  # should be hashed in the near future
     name: str
-    wallet: str
-    role: str
-
-
-class EditAccount(BaseModel):
-    password: str
-    name: str
+    email: Optional[str] = None
     wallet: str
 
 
-class CheckUsernameModel(BaseModel):
+class LoginAccount(BaseModel):
     username: str
+    password: str  # should be hashed in the near future
 
 
 def authenticate_user(username: str, password: str, db):
+
     user_db = db.query(models.User).filter(
         models.User.username == username and bcrypt.verify(password, models.User.hashed_password)).first()
 
@@ -57,31 +68,26 @@ def authenticate_user(username: str, password: str, db):
     return user_db
 
 
-@app.get('/')
-async def index():
-    return {'message': 'Base endpoint for Account API'}
-
-
-# Call this to login and create the OAuth2 Session
 @app.post('/api/login')
 async def token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
 
     user = authenticate_user(form_data.username, form_data.password, db)
 
     if user is False:
-        return {'error': 'Input username or password was incorrect'}
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
 
-    print(user.username)
     user_obj = {'id': user.id,
                 'username': user.username,
-                'name': user.name,
-                'role': user.role
-                }
-    token = jwt.encode(user_obj, JWT_SECRET)
+                'name': user.name}
+    token = jwt.encode(user_obj, jwt_secret)
 
     return {'access_token': token, 'token_type': 'bearer'}
 
-# Call this to register the user and his linked wallet
+
+@app.get('/')
+async def index(token: str = Depends(oauth2_scheme)):
+    return {'the_token': token}
 
 
 @app.post('/api/register')
@@ -89,18 +95,13 @@ def register(account: RegisterAccount, db: Session = Depends(get_db)):
 
     # check if already in db
     checkDB = db.query(models.User).filter(
-        models.User.username == account.username or models.User.wallet == account.wallet).first()
+        models.User.username == account.username).first()
 
     if(checkDB != None):
         raise HTTPException(
             status_code=HTTP_409_CONFLICT,
-            detail='User or wallet already registered'
+            detail='User already registered'
         )
-
-    roles = ['user', 'admin', 'organizer']
-    if(roles.__contains__(account.role)):
-        raise HTTPException(status_code=409,
-                            detail='Sent role is not valid. Check the spelling and make sure it is either user, organizer or admin')
 
     if (checkDB == None):
         dbUser = models.User(
@@ -108,8 +109,7 @@ def register(account: RegisterAccount, db: Session = Depends(get_db)):
             hashed_password=bcrypt.hash(account.password),
             name=account.name,
             wallet=account.wallet,
-            is_active=True,
-            role=account.role
+            is_active=True
         )
         db.add(dbUser)
         db.commit()
@@ -117,14 +117,13 @@ def register(account: RegisterAccount, db: Session = Depends(get_db)):
 
     return dbUser
 
-# Returns user from the passed token
-
 
 @app.get('/api/user/me')
 def get_me(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
 
     try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        payload = jwt.decode(
+            token, jwt_secret, algorithms=['HS256'])
         user = db.query(models.User).get(payload.get('id'))
 
         return user
@@ -135,38 +134,10 @@ def get_me(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
             detail='Invalid username or password'
         )
 
-# Edit the user corresponding to the token passed
-
 
 @app.put('/api/editAccount')
-def edit(account: EditAccount, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+def edit(account: LoginAccount):
 
     # look if in db
-
-    payload = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
-    user = db.query(models.User).get(payload.get('id'))
-
-    if user != None:
-        user.name = account.name
-        user.hashed_password = bcrypt.hash(account.password)
-        user.wallet = account.wallet
-        return {'message': f'User {user.name} was updated successfully!'}
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail='User not found'
-        )
-
-
-app.post('/api/checkUsername')
-
-
-def checkUser(data: CheckUsernameModel, db: Depends(get_db)):
-
-    user = db.query(models.User).filter(
-        data.username == models.User.username).first()
-
-    if user is None:
-        raise HTTP_404_NOT_FOUND
-
-    return user
+    # select and edit it
+    return {'message': f'successfully edited account {account.username}'}

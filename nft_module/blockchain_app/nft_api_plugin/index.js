@@ -3,7 +3,6 @@ const cors = require("cors");
 const { BasePlugin, codec } = require("lisk-sdk");
 const pJSON = require("../package.json");
 const { getDBInstance, getNFTHistory, getAllTransactions, saveNFTHistory, saveTransactions } = require("./db");
-const axios = require('axios')
 
 // 1.plugin can be a daemon/HTTP/Websocket service for off-chain processing
 class NFTAPIPlugin extends BasePlugin {
@@ -87,24 +86,6 @@ class NFTAPIPlugin extends BasePlugin {
       })
       res.json({ data });
     });
-
-    this._app.post("/api/register", function (req, res) {
-
-      const registerObject = {
-        'username': req.username,
-        'password': req.password,
-        'name': req.name,
-        'wallet': req.wallet
-      }
-
-      axios.post('localhost:8000/api/register', registerObject)
-      .then(response => console.log(response))
-      .catch(error => res.send(error))
-
-      res.send(`User ${req.username} with wallet ${req.wallet} was created successfully!`)
-
-    })
-
 
     this._subscribeToChannel();
 

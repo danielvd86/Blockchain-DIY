@@ -1,13 +1,14 @@
-from dotenv import load_dotenv
+from dotenv.main import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
+from dotenv import load_dotenv
 
 load_dotenv()
 
-# url template : postgresql://<username>:<pass>@localhost:5432/<db_name>
-SQLALCHEMY_DATABASE_URL = os.environ['DB_URL']
+SQLALCHEMY_DATABASE_URL = os.getenv('DB_CONNECTION_STRING')
+
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 

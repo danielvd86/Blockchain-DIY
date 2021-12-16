@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import {
   Card,
   CardContent,
@@ -11,9 +11,10 @@ import {
 import { makeStyles } from "@material-ui/core/styles";
 import { Link as RouterLink } from "react-router-dom";
 import { transactions, cryptography, Buffer } from "@liskhq/lisk-client";
-
 import PurchaseNFTTokenDialog from "./dialogs/PurchaseNFTTokenDialog";
 import TransferNFTDialog from "./dialogs/TransferNFTDialog";
+import { Fragment } from "react";
+import { authContext, authDefault } from "../context/AuthContext";
 
 const useStyles = makeStyles((theme) => ({
   propertyList: {
@@ -44,25 +45,40 @@ export default function NFTToken(props) {
   const classes = useStyles();
   const [openPurchase, setOpenPurchase] = useState(false);
   const [openTransfer, setOpenTransfer] = useState(false);
-  const base32UIAddress = cryptography.getBase32AddressFromAddress(Buffer.from(props.item.ownerAddress, 'hex'), 'lsk').toString('binary');
+  const base32UIAddress = cryptography
+    .getBase32AddressFromAddress(
+      Buffer.from(props.item.ownerAddress, "hex"),
+      "lsk"
+    )
+    .toString("binary");
+  const [user, updateUser] = useState(authDefault);
   return (
     <Card>
-      <CardContent>
-        <Typography variant="h6">{props.item.name}</Typography>
+      <CardContent className="relative">
+        <img className="mb-4" src="./ticket.png" alt="Logo" />
+        <div className="flex justify-between items-center">
+          <Typography variant="h7">RAVECOIN LAUNCH FESTIVAL</Typography>
+          <Typography variant="h5">
+            {transactions.convertBeddowsToLSK(props.item.value)}{" "}
+            <span className="text-xs font-bold">RVCN</span>
+          </Typography>
+        </div>
         <Divider />
         <dl className={classes.propertyList}>
-          <li>
+          {/* <li>
             <dt>Token ID</dt>
             <dd>{props.item.id}</dd>
-          </li>
-          <li>
+          </li> */}
+          {/* <li>
             <dt>Token value</dt>
-            <dd>{transactions.convertBeddowsToLSK(props.item.value)}</dd>
-          </li>
-          <li>
+            <dd className="text-lg">
+              {transactions.convertBeddowsToLSK(props.item.value)} $RVCN
+            </dd>
+          </li> */}
+          {/* <li>
             <dt>Minimum Purchase Margin</dt>
             <dd>{props.item.minPurchaseMargin}</dd>
-          </li>
+          </li> */}
           {!props.minimum && (
             <li>
               <dt>Current Owner</dt>
@@ -93,50 +109,54 @@ export default function NFTToken(props) {
             </li>
           </dl>
         ))}
-
       </CardContent>
-      <CardActions>
-        <>
-          <Button
-            size="small"
-            color="primary"
-            onClick={() => {
-              setOpenTransfer(true);
-            }}
-          >
-            Transfer NFT
-          </Button>
-          <TransferNFTDialog
-            open={openTransfer}
-            handleClose={() => {
-              setOpenTransfer(false);
-            }}
-            token={props.item}
-          />
-        </>
-        {props.item.minPurchaseMargin > 0 ? (
+      {user ? (
+        <CardActions>
           <>
             <Button
               size="small"
               color="primary"
               onClick={() => {
-                setOpenPurchase(true);
+                setOpenTransfer(true);
+                console.log(user);
               }}
             >
-              Purchase NFT
+              Transfer NFT
             </Button>
-            <PurchaseNFTTokenDialog
-              open={openPurchase}
+            <TransferNFTDialog
+              open={openTransfer}
               handleClose={() => {
-                setOpenPurchase(false);
+                setOpenTransfer(false);
               }}
               token={props.item}
             />
           </>
-        ) : (
-          <Typography variant="body">Can't purchase this token</Typography>
-        )}
-      </CardActions>
+          {props.item.minPurchaseMargin > 0 ? (
+            <>
+              <Button
+                size="small"
+                color="primary"
+                onClick={() => {
+                  setOpenPurchase(true);
+                }}
+              >
+                Purchase NFT
+              </Button>
+              <PurchaseNFTTokenDialog
+                open={openPurchase}
+                handleClose={() => {
+                  setOpenPurchase(false);
+                }}
+                token={props.item}
+              />
+            </>
+          ) : (
+            <Typography variant="body">Can't purchase this token</Typography>
+          )}
+        </CardActions>
+      ) : (
+        <Fragment></Fragment>
+      )}
     </Card>
   );
 }

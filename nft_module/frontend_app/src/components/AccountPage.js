@@ -4,7 +4,6 @@ import { fetchAccountInfo } from "../api";
 import Account from "./Account";
 import { cryptography } from "@liskhq/lisk-client";
 
-
 function AccountPage() {
   const { address } = useParams();
   const [account, setAccount] = useState({});
@@ -12,7 +11,9 @@ function AccountPage() {
 
   useEffect(() => {
     async function fetchData() {
-      const binaryAddress = cryptography.getAddressFromBase32Address(address).toString('hex');
+      const binaryAddress = cryptography
+        .getAddressFromBase32Address(address)
+        .toString("hex");
       setAccount(await fetchAccountInfo(binaryAddress));
       setLoaded(true);
     }

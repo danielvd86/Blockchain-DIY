@@ -22,7 +22,9 @@ export default function CreateAccountDialog(props) {
 
   useEffect(() => {
     const pw = passphrase.Mnemonic.generateMnemonic();
-    const address = cryptography.getBase32AddressFromPassphrase(pw).toString("hex");
+    const address = cryptography
+      .getBase32AddressFromPassphrase(pw)
+      .toString("hex");
     setData({ passphrase: pw, address });
   }, [props.open]);
 
@@ -56,4 +58,3 @@ export default function CreateAccountDialog(props) {
     </Fragment>
   );
 }
-
