@@ -30,7 +30,11 @@ import CreateAccountDialog from "./components/dialogs/CreateAccountDialog";
 import TransferFundsDialog from "./components/dialogs/TransferFundsDialog";
 import CreateNFTTokenDialog from "./components/dialogs/CreateNFTTokenDialog";
 import AuthModal from "./components/dialogs/AuthModal";
-import { authDefault, authContext } from "./context/AuthContext";
+import {
+  authDefault,
+  authContext,
+  updateUserCookie,
+} from "./context/AuthContext";
 import Cookies from "js-cookie";
 
 const useStyles = makeStyles((theme) => ({
@@ -58,7 +62,7 @@ export default function App() {
   );
   const [openSpeedDial, setOpenSpeedDial] = useState(false);
   const [openDialog, setOpenDialog] = useState(null);
-  const [user, updateUser] = useState(JSON.parse(authDefault));
+  const [user, updateUser] = useState(authDefault);
 
   const updateHeight = async () => {
     const info = await api.fetchNodeInfo();
@@ -71,7 +75,6 @@ export default function App() {
   };
 
   useEffect(() => {
-    Cookies.set("user", JSON.stringify({ username: "visitor" }));
     async function fetchData() {
       const info = await api.fetchNodeInfo();
       updateNodeInfoState({
@@ -144,8 +147,7 @@ export default function App() {
                         password: "kees",
                       };
                       updateUser(userTest);
-                      Cookies.set("user", JSON.stringify(userTest));
-                      window.location.reload();
+                      updateUserCookie(userTest);
                     }}
                     variant="contained"
                     color="primary"

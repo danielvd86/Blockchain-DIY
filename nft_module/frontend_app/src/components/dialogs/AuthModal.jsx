@@ -49,10 +49,14 @@ export default function AuthDialog(props) {
     });
   };
 
+  const setUser = ({ jwt }) => {
+    axios.get(`${api.AUTH_URL}/me`);
+  };
+
   const handleOnClick = async (event) => {
     // event.preventDefault();
 
-    if (!newUser) {
+    if (newUser) {
       console.log("Sign up attempt");
       const data = {
         name: registerData.name,
@@ -91,10 +95,10 @@ export default function AuthDialog(props) {
     <Fragment>
       <Dialog open={props.open} onBackdropClick={props.handleClose}>
         <DialogTitle id="alert-dialog-title">
-          {newUser ? "Sign in" : "Sign up"}
+          {newUser ? "Sign up" : "Sign in"}
         </DialogTitle>
         <DialogContent>
-          {!newUser ? (
+          {newUser ? (
             <form className={classes.root} noValidate autoComplete="off">
               <TextField
                 required
@@ -159,12 +163,12 @@ export default function AuthDialog(props) {
             color="info"
             onClick={() => setNewUser(!newUser)}
           >
-            {!newUser
+            {newUser
               ? "Have an account already? Sign in!"
               : "No account yet? Sign up!"}
           </Button>
           <Button variant="contained" color="primary" onClick={handleOnClick}>
-            {!newUser ? "Sign up" : "Sign in"}
+            {newUser ? "Sign up" : "Sign in"}
           </Button>
         </DialogActions>
       </Dialog>
