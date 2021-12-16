@@ -1,4 +1,10 @@
-import React, { Fragment, useContext, useMemo, useState } from "react";
+import React, {
+  Fragment,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   Dialog,
   DialogTitle,
@@ -10,7 +16,8 @@ import {
 import { makeStyles } from "@material-ui/core/styles";
 import axios from "axios";
 import * as api from "../../api";
-import { authDefault } from "../../context/AuthContext";
+import { authDefault, updateUserCookie } from "../../context/AuthContext";
+import Cookies from "js-cookie";
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -24,6 +31,7 @@ export default function AuthDialog(props) {
   const classes = useStyles();
   const [user, updateUser] = useState(authDefault);
   const [newUser, setNewUser] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
   const [loginData, setLoginData] = useState({
     username: "",
     password: "",
@@ -36,6 +44,22 @@ export default function AuthDialog(props) {
     wallet: "",
   });
 
+  useEffect(() => {
+    console.log("User changed...");
+    const config = {
+      headers: {
+        Authorization: "Bearer " + Cookies.get("jwt"),
+      },
+    };
+
+    if (loggedIn) {
+      axios.get(`${api.AUTH_URL}/user/me`, config).then((res) => {
+        const data = res.data;
+        Cookies.set("user", JSON.stringify(data));
+      });
+    }
+  }, [loggedIn]);
+
   const handleLoginChange = (event) => {
     event.persist();
     setLoginData({ ...loginData, [event.target.name]: event.target.value });
@@ -47,10 +71,6 @@ export default function AuthDialog(props) {
       ...registerData,
       [event.target.name]: event.target.value,
     });
-  };
-
-  const setUser = ({ jwt }) => {
-    axios.get(`${api.AUTH_URL}/me`);
   };
 
   const handleOnClick = async (event) => {
@@ -82,8 +102,10 @@ export default function AuthDialog(props) {
       axios
         .post(`${api.AUTH_URL}/login`, data)
         .then((res) => {
+          const data = res.data;
           console.log(res.data);
-          // setUser(res.data);
+          Cookies.set("jwt", data.access_token);
+          setLoggedIn(true);
         })
         .catch((err) => {
           console.log(err);

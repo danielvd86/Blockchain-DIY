@@ -87,6 +87,12 @@ export default function App() {
     fetchData();
   }, []);
 
+  const signOut = () => {
+    Cookies.remove("jwt");
+    Cookies.remove("user");
+    window.location.reload();
+  };
+
   const handleSpeedDialClose = () => {
     setOpenSpeedDial(false);
   };
@@ -132,47 +138,26 @@ export default function App() {
                   </Link>
                 </div>
                 <div className="flex flex-row gap-2">
+                  <Button variant="contained" color="info">
+                    {Cookies.get("user")
+                      ? JSON.parse(user).username
+                      : "Visitor"}
+                  </Button>
                   <Button
                     onClick={() => {
-                      setOpenDialog("AuthenticationDialog");
+                      !user ? setOpenDialog("AuthenticationDialog") : signOut();
                     }}
                     variant="contained"
+                    color={user ? "secondary" : "primary"}
                   >
                     {user ? "Sign out" : "Sign in"}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      const userTest = {
-                        username: "kdk",
-                        password: "kees",
-                      };
-                      updateUser(userTest);
-                      updateUserCookie(userTest);
-                    }}
-                    variant="contained"
-                    color="primary"
-                  >
-                    Set user
-                  </Button>
-                  <Button variant="contained" color="primary">
-                    {Cookies.get("user") ? user.username : "Welloe"}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      Cookies.remove("user");
-                      window.location.reload();
-                    }}
-                    variant="contained"
-                    color="secondary"
-                  >
-                    SIGN OUT
                   </Button>
                 </div>
               </Toolbar>
             </AppBar>
 
             <SpeedDial
-              hidden={!user}
+              hidden={user.role !== "admin"}
               ariaLabel="SpeedDial example"
               color="secondary"
               className={classes.speedDial}
