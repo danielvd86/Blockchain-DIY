@@ -30,7 +30,11 @@ import CreateAccountDialog from "./components/dialogs/CreateAccountDialog";
 import TransferFundsDialog from "./components/dialogs/TransferFundsDialog";
 import CreateNFTTokenDialog from "./components/dialogs/CreateNFTTokenDialog";
 import AuthModal from "./components/dialogs/AuthModal";
-import { authDefault, authContext } from "./context/AuthContext";
+import {
+  authDefault,
+  authContext,
+  updateUserCookie,
+} from "./context/AuthContext";
 import Cookies from "js-cookie";
 
 const useStyles = makeStyles((theme) => ({
@@ -58,7 +62,7 @@ export default function App() {
   );
   const [openSpeedDial, setOpenSpeedDial] = useState(false);
   const [openDialog, setOpenDialog] = useState(null);
-  const [user, updateUser] = useState(JSON.parse(authDefault));
+  const [user, updateUser] = useState(authDefault);
 
   const updateHeight = async () => {
     const info = await api.fetchNodeInfo();
@@ -71,7 +75,6 @@ export default function App() {
   };
 
   useEffect(() => {
-    Cookies.set("user", JSON.stringify({ username: "visitor" }));
     async function fetchData() {
       const info = await api.fetchNodeInfo();
       updateNodeInfoState({
@@ -83,6 +86,12 @@ export default function App() {
     }
     fetchData();
   }, []);
+
+  const signOut = () => {
+    Cookies.remove("jwt");
+    Cookies.remove("user");
+    window.location.reload();
+  };
 
   const handleSpeedDialClose = () => {
     setOpenSpeedDial(false);
@@ -122,6 +131,8 @@ export default function App() {
                     color="inherit"
                     component={RouterLink}
                     to={"/accounts/lskd4mktjd5xyqp3n49xfdm7e7pkc4hy7s6un3p92"}
+                    // to={"/accounts/lskqs9sw52zq5s3p9uzkdgd3r52nuwqc9n2ejpukz"}
+                    // TODO: fix this, address doesnt get added in the blockchain
                     className={classes.appBarLink}
                     className={`${!user ? "hidden" : ""}`}
                   >
@@ -129,48 +140,24 @@ export default function App() {
                   </Link>
                 </div>
                 <div className="flex flex-row gap-2">
+                  <Button variant="contained" color="info">
+                    {user ? JSON.parse(user).username : "Visitor"}
+                  </Button>
                   <Button
                     onClick={() => {
-                      setOpenDialog("AuthenticationDialog");
+                      !user ? setOpenDialog("AuthenticationDialog") : signOut();
                     }}
                     variant="contained"
+                    color={user ? "secondary" : "primary"}
                   >
                     {user ? "Sign out" : "Sign in"}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      const userTest = {
-                        username: "kdk",
-                        password: "kees",
-                      };
-                      updateUser(userTest);
-                      Cookies.set("user", JSON.stringify(userTest));
-                      window.location.reload();
-                    }}
-                    variant="contained"
-                    color="primary"
-                  >
-                    Set user
-                  </Button>
-                  <Button variant="contained" color="primary">
-                    {Cookies.get("user") ? user.username : "Welloe"}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      Cookies.remove("user");
-                      window.location.reload();
-                    }}
-                    variant="contained"
-                    color="secondary"
-                  >
-                    SIGN OUT
                   </Button>
                 </div>
               </Toolbar>
             </AppBar>
 
             <SpeedDial
-              hidden={!user}
+              hidden={!user || user.role !== "admin"}
               ariaLabel="SpeedDial example"
               color="secondary"
               className={classes.speedDial}
