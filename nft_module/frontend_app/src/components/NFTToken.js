@@ -112,13 +112,14 @@ export default function NFTToken(props) {
       </CardContent>
       {user ? (
         <CardActions>
-          <>
+          <div
+            className={`${user.wallet === base32UIAddress ? "" : "bg-red-400"}`}
+          >
             <Button
               size="small"
               color="primary"
               onClick={() => {
                 setOpenTransfer(true);
-                console.log(user);
               }}
             >
               Transfer NFT
@@ -130,7 +131,7 @@ export default function NFTToken(props) {
               }}
               token={props.item}
             />
-          </>
+          </div>
           {props.item.minPurchaseMargin > 0 ? (
             <>
               <Button

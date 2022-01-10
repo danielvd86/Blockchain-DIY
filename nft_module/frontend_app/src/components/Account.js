@@ -4,6 +4,7 @@ import { makeStyles } from "@material-ui/core/styles";
 import { Buffer, cryptography, transactions } from "@liskhq/lisk-client";
 import NFTToken from "./NFTToken";
 import { fetchNFTToken } from "../api";
+import { authDefault, updateUserCookie } from "../context/AuthContext";
 
 const useStyles = makeStyles((theme) => ({
   propertyList: {
@@ -31,6 +32,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 export default function Account(props) {
+  const [user, updateUser] = useState(authDefault);
   const [nftTokens, setNftTokens] = useState([]);
   const classes = useStyles();
   const base32UIAddress = cryptography

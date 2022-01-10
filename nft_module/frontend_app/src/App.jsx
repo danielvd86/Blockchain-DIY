@@ -131,6 +131,8 @@ export default function App() {
                     color="inherit"
                     component={RouterLink}
                     to={"/accounts/lskd4mktjd5xyqp3n49xfdm7e7pkc4hy7s6un3p92"}
+                    // to={"/accounts/lskqs9sw52zq5s3p9uzkdgd3r52nuwqc9n2ejpukz"}
+                    // TODO: fix this, address doesnt get added in the blockchain
                     className={classes.appBarLink}
                     className={`${!user ? "hidden" : ""}`}
                   >
@@ -139,9 +141,7 @@ export default function App() {
                 </div>
                 <div className="flex flex-row gap-2">
                   <Button variant="contained" color="info">
-                    {Cookies.get("user")
-                      ? JSON.parse(user).username
-                      : "Visitor"}
+                    {user ? JSON.parse(user).username : "Visitor"}
                   </Button>
                   <Button
                     onClick={() => {
@@ -157,7 +157,7 @@ export default function App() {
             </AppBar>
 
             <SpeedDial
-              hidden={user.role !== "admin"}
+              hidden={!user || user.role !== "admin"}
               ariaLabel="SpeedDial example"
               color="secondary"
               className={classes.speedDial}
